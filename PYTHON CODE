@@ -1,0 +1,418 @@
+cat > scanner.py << 'EOF'
+import requests
+import time
+import logging
+import os
+
+from datetime import datetime
+from concurrent.futures import ThreadPoolExecutor
+
+TARGETS = [
+    "http://127.0.0.1:8080"
+]
+
+REQUEST_DELAY = 1.0
+MAX_THREADS = 5
+TIMEOUT = 10
+
+os.makedirs("logs", exist_ok=True)
+os.makedirs("reports", exist_ok=True)
+
+logging.basicConfig(
+    filename="logs/scan.log",
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(message)s"
+)
+
+def log(message):
+    print(message)
+    logging.info(message)
+
+results = []
+
+def check_security_headers(response, url):
+    required_headers = [
+        "Content-Security-Policy",
+        "X-Frame-Options",
+        "X-Content-Type-Options"
+    ]
+
+    for header in required_headers:
+        if header not in response.headers:
+            finding = f"[WARNING] {url} missing security header: {header}"
+            log(finding)
+            results.append(finding)
+
+def scan_url(url):
+    try:
+        log(f"[+] Visiting {url}")
+
+        response = requests.get(
+            url,
+            timeout=TIMEOUT
+        )
+
+        result = (
+            f"{url} | "
+            f"Status={response.status_code} | "
+            f"Length={len(response.text)}"
+        )
+
+        log(result)
+        results.append(result)
+
+        check_security_headers(response, url)
+
+        time.sleep(REQUEST_DELAY)
+
+    except Exception as e:
+        error = f"{url} | ERROR: {e}"
+        log(error)
+        results.append(error)
+
+def save_report():
+    filename = (
+        "reports/report_" +
+        datetime.now().strftime("%Y%m%d_%H%M%S") +
+        ".txt"
+    )
+
+    with open(filename, "w") as f:
+        f.write("WEB ASSESSMENT REPORT\n")
+        f.write("=" * 50 + "\n\n")
+
+        for item in results:
+            f.write(item + "\n")
+
+    return filename
+
+def main():
+    log("[*] Starting scan")
+
+    with ThreadPoolExecutor(max_workers=MAX_THREADS) as executor:
+        executor.map(scan_url, TARGETS)
+
+    report = save_report()
+    log(f"[+] Report saved: {report}")
+
+if __name__ == "__main__":
+    main()
+EOF
+
+import requests
+from bs4 import BeautifulSoup
+from urllib.parse import urljoin
+
+BASE_URL = "http://127.0.0.1:8080"
+
+session = requests.Session()
+
+try:
+    response = session.get(BASE_URL, timeout=10)
+
+    print(f"\n[+] Connected to {BASE_URL}")
+    print(f"[+] Status Code: {response.status_code}\n")
+
+    soup = BeautifulSoup(response.text, "html.parser")
+
+    forms = soup.find_all("form")
+
+    print(f"[+] Forms Found: {len(forms)}\n")
+
+    for index, form in enumerate(forms, start=1):
+
+        print("=" * 50)
+        print(f"FORM #{index}")
+
+        action = form.get("action")
+        method = form.get("method", "GET")
+
+        if action:
+            action = urljoin(BASE_URL, action)
+
+        print(f"Action : {action}")
+        print(f"Method : {method}")
+
+        inputs = form.find_all("input")
+
+        print("\nInputs:")
+
+        for field in inputs:
+
+            field_name = field.get("name")
+            field_type = field.get("type")
+
+            print(
+                f"  Name={field_name} "
+                f"Type={field_type}"
+            )
+
+        print()
+
+except Exception as e:
+    print(f"[ERROR] {e}")
+
+import requests
+from bs4 import BeautifulSoup
+from urllib.parse import urljoin
+
+BASE_URL = "http://127.0.0.1:8080"
+
+visited = set()
+
+def crawl(url):
+
+    if url in visited:
+        return
+
+    visited.add(url)
+
+    try:
+
+        response = requests.get(
+            url,
+            timeout=5
+        )
+
+        print(f"[+] {url}")
+
+        soup = BeautifulSoup(
+            response.text,
+            "html.parser"
+        )
+
+        for link in soup.find_all("a"):
+
+            href = link.get("href")
+
+            if not href:
+                continue
+
+            full_url = urljoin(
+                BASE_URL,
+                href
+            )
+
+            if full_url.startswith(BASE_URL):
+                crawl(full_url)
+
+    except Exception as e:
+
+        print(
+            f"[ERROR] {url} -> {e}"
+        )
+
+crawl(BASE_URL)
+
+print("\n===== DISCOVERED PAGES =====")
+
+for page in sorted(visited):
+    print(page)
+
+import requests
+from bs4 import BeautifulSoup
+from urllib.parse import urljoin
+import csv
+
+BASE_URL = "http://127.0.0.1:8080"
+
+visited = set()
+
+def crawl(url):
+
+    if url in visited:
+        return
+
+    visited.add(url)
+
+    try:
+        response = requests.get(
+            url,
+            timeout=5
+        )
+
+        print(f"[+] {url}")
+
+        soup = BeautifulSoup(
+            response.text,
+            "html.parser"
+        )
+
+        for link in soup.find_all("a"):
+
+            href = link.get("href")
+
+            if not href:
+                continue
+
+            full_url = urljoin(
+                BASE_URL,
+                href
+            )
+
+            if full_url.startswith(BASE_URL):
+                crawl(full_url)
+
+    except Exception as e:
+
+        print(
+            f"[ERROR] {url} -> {e}"
+        )
+
+
+crawl(BASE_URL)
+
+with open(
+    "site_map.csv",
+    "w",
+    newline=""
+) as file:
+
+    writer = csv.writer(file)
+
+    writer.writerow(
+        ["Discovered Pages"]
+    )
+
+    for page in sorted(visited):
+        writer.writerow([page])
+
+print(
+    f"\n[+] Saved {len(visited)} pages to site_map.csv"
+)
+
+import requests
+from bs4 import BeautifulSoup
+from urllib.parse import urljoin
+from concurrent.futures import ThreadPoolExecutor
+import threading
+
+BASE_URL = "http://127.0.0.1:8080"
+
+visited = set()
+lock = threading.Lock()
+
+
+def crawl(url):
+
+    with lock:
+        if url in visited:
+            return
+        visited.add(url)
+
+    try:
+        response = requests.get(
+            url,
+            timeout=5
+        )
+
+        print(f"[+] {url}")
+
+        soup = BeautifulSoup(
+            response.text,
+            "html.parser"
+        )
+
+        links = []
+
+        for link in soup.find_all("a"):
+
+            href = link.get("href")
+
+            if not href:
+                continue
+
+            full_url = urljoin(
+                BASE_URL,
+                href
+            )
+
+            if full_url.startswith(BASE_URL):
+                links.append(full_url)
+
+        with ThreadPoolExecutor(
+            max_workers=5
+        ) as executor:
+            executor.map(crawl, links)
+
+    except Exception as e:
+        print(f"[ERROR] {url} -> {e}")
+
+
+crawl(BASE_URL)
+
+print("\n===== DISCOVERED PAGES =====")
+
+for page in sorted(visited):
+    print(page)
+
+from datetime import datetime
+
+pages = [
+    "http://127.0.0.1:8080",
+    "http://127.0.0.1:8080/login.php"
+]
+
+filename = "report.html"
+
+html = f"""
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Web Assessment Report</title>
+    <style>
+        body {{
+            font-family: Arial, sans-serif;
+            margin: 40px;
+        }}
+        h1 {{
+            color: #2c3e50;
+        }}
+        table {{
+            border-collapse: collapse;
+            width: 100%;
+        }}
+        th, td {{
+            border: 1px solid #ddd;
+            padding: 10px;
+        }}
+        th {{
+            background-color: #f2f2f2;
+        }}
+    </style>
+</head>
+<body>
+
+<h1>Web Assessment Report</h1>
+
+<p><strong>Date:</strong> {datetime.now()}</p>
+
+<h2>Discovered Pages</h2>
+
+<table>
+<tr>
+    <th>#</th>
+    <th>URL</th>
+</tr>
+"""
+
+for i, page in enumerate(pages, start=1):
+    html += f"""
+<tr>
+    <td>{i}</td>
+    <td>{page}</td>
+</tr>
+"""
+
+html += """
+</table>
+
+</body>
+</html>
+"""
+
+with open(filename, "w") as f:
+    f.write(html)
+
+print(f"[+] HTML report created: {filename}")
+
