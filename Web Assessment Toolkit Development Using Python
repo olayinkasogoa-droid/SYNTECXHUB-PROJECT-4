@@ -1,0 +1,31 @@
+SYNTECXHUB PROJECT 4
+Project Title
+Web Assessment Toolkit Development Using Python
+Project Overview
+During my internship at SyntexHub, I developed a Python-based Web Assessment Toolkit using Kali Linux and the Damn Vulnerable Web Application (DVWA) in a controlled lab environment. The aim of the project was to understand how web applications work and to build tools that can automate web application assessment tasks.
+Project Development Steps
+Set up the development environment using Python and a virtual environment.
+Built a Form Mapper to discover web forms and input fields.
+Developed a Web Crawler to automatically discover pages and create a sitemap.
+Implemented Multi-Threaded Crawling to improve performance.
+Generated CSV and HTML reports to document findings.
+Tools and Technologies Used
+Kali Linux
+Python 3
+Requests Library
+BeautifulSoup4
+Docker
+DVWA (Damn Vulnerable Web Application)
+ThreadPoolExecutor
+Skills and Knowledge Gained
+Through this project, I gained practical experience in:
+Python Programming
+Web Application Assessment
+HTTP Requests and Responses
+HTML Parsing and Web Crawling
+Multi-threading and Concurrency
+Report Generation
+Docker and Linux Administration
+Problem Solving and Debugging
+What I Learned
+This project improved my understanding of how web applications function and how security professionals use automation to gather information and assess web applications in authorized environments. It also strengthened my troubleshooting, research, and software development skills.
